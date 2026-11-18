@@ -205,8 +205,8 @@ export class SyncSettingTab extends PluginSettingTab {
     const cs = h.settings.configSync;
     new Setting(containerEl).setName(t("set.config")).setHeading();
     new Setting(containerEl)
-      .setName(t("set.config.enabled.name"))
-      .setDesc(t("set.config.enabled.desc", { dir: this.app.vault.configDir }))
+      .setName(t("set.config.enabled.name", { dir: this.app.vault.configDir }))
+      .setDesc(t("set.config.enabled.desc"))
       .addToggle(tg => tg.setValue(cs.enabled).onChange(async v => {
         cs.enabled = v;
         await h.saveSettings();

@@ -124,6 +124,8 @@ export default class VaultGitHubSyncPlugin extends Plugin {
 
     const bar = new StatusBar(this.addStatusBarItem());
     this.statusBar = bar;
+    // The controller's first state changes happened before the bar existed: draw it now.
+    this.renderStatus(this.controller.status);
     this.registerDomEvent(bar.el, "click", evt => this.statusMenu(evt));
     this.registerInterval(activeWindow.setInterval(() => this.renderStatus(this.controller.status), 60_000));
 

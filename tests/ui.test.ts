@@ -188,3 +188,22 @@ describe("other sync tool detection (§9)", () => {
     expect(await detectOtherSyncTools(probe({ ".obsidian/core-plugins.json": "garbage" }, "/home/me/notes"))).toEqual([]);
   });
 });
+
+describe("i18n: every placeholder gets a value (regression)", () => {
+  it("no t(\"key\") call without vars for a string that has {placeholders}", async () => {
+    const { readFileSync, readdirSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const files: string[] = [];
+    const walk = (d: string) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (p.endsWith(".ts")) files.push(p); } };
+    walk("src");
+    const missing: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      for (const m of src.matchAll(/\bt\("([\w.]+)"\)/g)) {
+        const template = t(m[1] as Parameters<typeof t>[0]);
+        if (/(^|[^{])\{\w+\}(?!\})/.test(template)) missing.push(`${f}: t("${m[1]}") → ${template}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});

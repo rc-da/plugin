@@ -9,7 +9,8 @@
     "test:watch": "vitest",
     "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "build:dev": "node esbuild.config.mjs",
-    "version": "node version-bump.mjs && git add manifest.json versions.json"
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "test:bundle": "vitest run -c vitest.bundle.config.ts"
   },
   "dependencies": {
     "ignore": "^5.3.1",
