@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json"
+    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "build:dev": "node esbuild.config.mjs",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
   "dependencies": {
     "ignore": "^5.3.1",

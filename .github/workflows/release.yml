@@ -1,0 +1,74 @@
+name: Release
+
+# Push a tag equal to the version in manifest.json (no "v" prefix), e.g.:
+#   npm version patch && git push --follow-tags
+# Tags with a pre-release suffix (0.2.0-beta.1) become GitHub pre-releases.
+
+on:
+  push:
+    tags: ["[0-9]+.[0-9]+.[0-9]+*"]
+
+permissions:
+  contents: write      # create the release
+  id-token: write      # build provenance attestation
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tag matches package.json, manifest.json and versions.json
+        run: |
+          tag="$GITHUB_REF_NAME"
+          pkg=$(node -p "require('./package.json').version")
+          man=$(node -p "require('./manifest.json').version")
+          min=$(node -p "require('./versions.json')['$tag'] ?? ''")
+          if [ "$tag" != "$pkg" ] || [ "$tag" != "$man" ]; then
+            echo "::error::tag $tag does not match package.json ($pkg) / manifest.json ($man). Use npm version."
+            exit 1
+          fi
+          if [ -z "$min" ]; then
+            echo "::error::versions.json has no entry for $tag. Use npm version."
+            exit 1
+          fi
+
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+      - name: Bundle hygiene (mobile-safe, no source map)
+        run: |
+          if grep -q "sourceMappingURL" main.js; then echo "::error::main.js contains a source map"; exit 1; fi
+          if grep -qE 'require\("(fs|path|os|child_process|crypto|electron)"\)' main.js; then
+            echo "::error::main.js requires a Node/Electron module (breaks mobile)"; exit 1
+          fi
+          ls -l main.js manifest.json styles.css
+
+      - name: Attest build provenance
+        # Artifact attestations need a public repo (or GitHub Enterprise Cloud for private ones).
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          pre=""
+          case "$tag" in *-*) pre="--prerelease" ;; esac
+          gh release create "$tag" main.js manifest.json styles.css \
+            --title "$tag" --generate-notes --verify-tag $pre

@@ -3,6 +3,9 @@ import builtins from "builtin-modules";
 import process from "process";
 
 const watch = process.argv.includes("--watch");
+// `npm run build` (and the release workflow) pass "production": no source map in
+// the shipped main.js. Dev/watch builds keep an inline map for debugging.
+const production = process.argv.includes("production");
 
 const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
@@ -27,7 +30,7 @@ const context = await esbuild.context({
   platform: "browser",
   target: "es2018",
   logLevel: "info",
-  sourcemap: "inline",
+  sourcemap: production ? false : "inline",
   treeShaking: true,
   outfile: "main.js",
 });
