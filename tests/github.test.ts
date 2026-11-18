@@ -407,3 +407,20 @@ describe("GitHubRemote — settings helpers", () => {
     expect(r2.repo).toMatchObject({ ok: false });
   });
 });
+
+describe("GitHubRemote — 'repository not found' diagnosis", () => {
+  it("on a 404 it lists what the token can see, so the user learns why", async () => {
+    const { http, remote } = make();
+    http.repos = new Set(["owner/test_vault"]);          // the repo GitHub knows
+    const r = await remote.testConnection("owner/test-vault", BRANCH); // what the user typed
+    expect(r.repo).toMatchObject({ ok: false, visible: [{ fullName: "owner/test_vault", private: true }] });
+  });
+
+  it("a token limited to public repositories sees no private repo", async () => {
+    const { http, remote } = make();
+    http.repos.clear();
+    http.userRepos = [{ full_name: "owner/website", private: false }];
+    const r = await remote.testConnection(REPO, BRANCH);
+    expect(r.repo).toMatchObject({ ok: false, visible: [{ fullName: "owner/website", private: false }] });
+  });
+});

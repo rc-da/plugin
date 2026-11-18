@@ -54,7 +54,8 @@ export interface ConnectionReport {
     | { ok: false; error: SyncError };
   repo?:
     | { ok: true; private: boolean; canPush: boolean; defaultBranch: string; scopeMissing: boolean }
-    | { ok: false; error: SyncError };
+    /** `visible`: repos the token can see, fetched when the repo was not found (null if that failed too). */
+    | { ok: false; error: SyncError; visible?: { fullName: string; private: boolean }[] | null };
   branch?: { exists: boolean; error?: SyncError };
   /** "unknown-empty-repo": the repo has no commits yet, so the Git Data API cannot be probed. */
   write?: "ok" | "denied" | "unknown-empty-repo" | SyncError;
@@ -277,7 +278,17 @@ export class GitHubRemote implements RemotePort {
         defaultBranch: String(field(body, ["default_branch"]) ?? "main"), scopeMissing,
       };
     } catch (e) {
-      report.repo = { ok: false, error: asSyncError(e) };
+      const error = asSyncError(e);
+      report.repo = { ok: false, error };
+      if (error.kind === "NotFound") {
+        // GitHub answers 404 for "exists but this token may not see it", so look at
+        // what the token *can* see: that tells the user exactly what to fix.
+        try {
+          report.repo.visible = (await this.listRepos()).map(r => ({ fullName: r.fullName, private: r.private }));
+        } catch {
+          report.repo.visible = null;
+        }
+      }
       return report;
     }
     try {

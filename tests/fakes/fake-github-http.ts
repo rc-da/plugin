@@ -28,6 +28,8 @@ export class FakeGitHubHttp {
   login = "tester";
   /** Repo permissions for the authenticated user. */
   canPush = true;
+  /** What GET /user/repos returns (default: every repo in `repos`, private). */
+  userRepos: { full_name: string; private: boolean }[] | null = null;
   rateReset = 1_700_003_600;
 
   constructor(private readonly gh: FakeGitHub, repos: string[] = ["owner/repo"]) {
@@ -87,7 +89,7 @@ export class FakeGitHubHttp {
       return this.json(200, { login: this.login }, extra);
     }
     if (url.pathname === "/user/repos" && req.method === "GET") {
-      return this.json(200, [...this.repos].map(r => ({ full_name: r, default_branch: "main", private: true })));
+      return this.json(200, (this.userRepos ?? [...this.repos].map(r => ({ full_name: r, private: true }))).map(r => ({ ...r, default_branch: "main" })));
     }
     const m = /^\/repos\/([^/]+)\/([^/]+)(\/.*)?$/.exec(url.pathname);
     if (!m) return this.json(404, { message: "Not Found" });

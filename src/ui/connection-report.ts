@@ -31,7 +31,7 @@ export function formatConnectionReport(r: ConnectionReport, repo: string, branch
 
   if (!r.repo) return lines;
   if (!r.repo.ok) {
-    lines.push({ status: "fail", label: t("test.repo"), detail: r.repo.error.message });
+    lines.push({ status: "fail", label: t("test.repo"), detail: repoNotFoundDetail(r.repo.error.message, r.repo.visible, repo) });
     return lines;
   }
   if (r.repo.scopeMissing) {
@@ -70,4 +70,30 @@ export function parseGitHubDate(v: string): number {
   if (!m) return NaN;
   const zone = !m[3] || m[3] === "UTC" || m[3] === "Z" ? "Z" : m[3].length === 5 ? `${m[3].slice(0, 3)}:${m[3].slice(3)}` : m[3];
   return Date.parse(`${m[1]}T${m[2]}${zone}`);
+}
+
+/**
+ * Why a repo was "not found", using the list of repositories the token can see.
+ * GitHub returns 404 both for a wrong name and for "this token may not see it".
+ */
+export function repoNotFoundDetail(
+  fallback: string,
+  visible: { fullName: string; private: boolean }[] | null | undefined,
+  repo: string,
+): string {
+  if (!visible) return fallback;
+  const want = repo.toLowerCase();
+  const name = want.split("/")[1] ?? want;
+  if (visible.length === 0 || visible.every(v => !v.private)) {
+    return t("rep.noPrivateAccess", { repo });
+  }
+  const exact = visible.find(v => v.fullName.toLowerCase() === want);
+  if (exact) return fallback; // visible in the list but not by name: rare, keep GitHub's answer
+  const close = visible.find(v => {
+    const n = (v.fullName.split("/")[1] ?? "").toLowerCase();
+    return n === name || n.replace(/[-_.]/g, "") === name.replace(/[-_.]/g, "");
+  });
+  if (close) return t("rep.didYouMean", { repo, other: close.fullName });
+  const shown = visible.slice(0, 5).map(v => v.fullName).join(", ") + (visible.length > 5 ? ", …" : "");
+  return t("rep.notInToken", { repo, list: shown });
 }

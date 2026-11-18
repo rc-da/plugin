@@ -207,3 +207,26 @@ describe("i18n: every placeholder gets a value (regression)", () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe("repository input and not-found explanations", () => {
+  it("accepts what people paste", async () => {
+    const { normalizeRepoInput } = await import("../src/settings");
+    for (const raw of ["rc-da/test-vault", " rc-da/test-vault ", "https://github.com/rc-da/test-vault", "https://github.com/rc-da/test-vault.git",
+      "github.com/rc-da/test-vault/", "git@github.com:rc-da/test-vault.git", "https://github.com/rc-da/test-vault/tree/main", "https://www.github.com/rc-da/test-vault?tab=readme"]) {
+      expect(normalizeRepoInput(raw), raw).toBe("rc-da/test-vault");
+    }
+    expect(normalizeRepoInput("just-a-name")).toBe("just-a-name"); // left for isConfigured to reject
+  });
+
+  it("explains the three usual causes precisely", async () => {
+    const { repoNotFoundDetail } = await import("../src/ui/connection-report");
+    const fb = "generic";
+    expect(repoNotFoundDetail(fb, [], "me/notes")).toMatch(/cannot see any private repository.*Only select repositories.*me\/notes/);
+    expect(repoNotFoundDetail(fb, [{ fullName: "me/site", private: false }], "me/notes")).toMatch(/cannot see any private repository/);
+    expect(repoNotFoundDetail(fb, [{ fullName: "me/test_vault", private: true }], "me/test-vault")).toMatch(/can see me\/test_vault\. Did you mean/);
+    expect(repoNotFoundDetail(fb, [{ fullName: "Me/Notes", private: true }, { fullName: "me/x", private: true }], "someone/notes")).toMatch(/can see Me\/Notes/);
+    expect(repoNotFoundDetail(fb, [{ fullName: "me/a", private: true }, { fullName: "me/b", private: true }], "me/notes")).toBe(
+      "This token cannot see me/notes. It can see: me/a, me/b. Add me/notes under the token's Repository access on GitHub, or fix the name here.");
+    expect(repoNotFoundDetail(fb, null, "me/notes")).toBe(fb);
+  });
+});

@@ -1,7 +1,7 @@
 import { AbstractInputSuggest, type App, Notice, type Plugin, PluginSettingTab, SecretComponent, Setting } from "obsidian";
 import type { GitHubRemote } from "../adapters/github";
 import { t } from "../i18n";
-import type { DeviceSettings, Settings } from "../settings";
+import { normalizeRepoInput, type DeviceSettings, type Settings } from "../settings";
 import { formatConnectionReport } from "./connection-report";
 
 // Settings tab (§7, §8, §10). No modals are opened from here (modal rule): test
@@ -60,7 +60,7 @@ export class SyncSettingTab extends PluginSettingTab {
       .setName(t("set.repo.name"))
       .setDesc(t("set.repo.desc"))
       .addText(text => {
-        text.setPlaceholder("owner/notes").setValue(s.repo).onChange(async v => { s.repo = v.trim(); await h.saveSettings(); });
+        text.setPlaceholder("owner/notes").setValue(s.repo).onChange(async v => { s.repo = normalizeRepoInput(v); await h.saveSettings(); });
         new ListSuggest(this.app, text.inputEl, () => h.remote.listRepos().then(rs => rs.map(r => r.fullName)), async v => {
           s.repo = v;
           await h.saveSettings();

@@ -84,7 +84,7 @@ export function migrateSettings(raw: unknown, storeSecret: (id: string, value: s
   const str = (v: unknown, d: string) => (typeof v === "string" ? v : d);
   const settings: Settings = {
     version: 1,
-    repo: str(r.repo, DEFAULT_SETTINGS.repo).trim(),
+    repo: normalizeRepoInput(str(r.repo, DEFAULT_SETTINGS.repo)),
     branch: str(r.branch, DEFAULT_SETTINGS.branch).trim() || DEFAULT_SETTINGS.branch,
     tokenSecretId: str(r.tokenSecretId, ""),
     commitTemplate: str(r.commitTemplate, DEFAULT_SETTINGS.commitTemplate) || DEFAULT_SETTINGS.commitTemplate,
@@ -164,6 +164,18 @@ function intIn(v: unknown, min: number, max: number, d: number): number {
 /** Fingerprint of everything that changes what is excluded (core re-walks the remote when it changes). */
 export function excludeKey(opts: ExcludeOptions): string {
   return JSON.stringify({ v: EXCLUDE_RULES_VERSION, ...opts });
+}
+
+/**
+ * Turn what people paste into "owner/name": https://github.com/owner/name(.git),
+ * git@github.com:owner/name.git, "owner/name/", surrounding spaces.
+ */
+export function normalizeRepoInput(raw: string): string {
+  let s = raw.trim();
+  s = s.replace(/^git@github\.com:/i, "").replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "");
+  s = s.replace(/[?#].*$/, "").replace(/\/+$/, "").replace(/\.git$/i, "");
+  const parts = s.split("/").filter(Boolean);
+  return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : s;
 }
 
 /** True when repo and branch look usable. */

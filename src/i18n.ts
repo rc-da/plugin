@@ -199,6 +199,9 @@ const en = {
   "rep.writeDenied": "The token cannot write. Give it Contents: read and write for this repository.",
   "rep.writeUnknown": "The repository is empty, so write access can only be confirmed by the first sync.",
   "rep.rate": "{n} requests left this hour.",
+  "rep.noPrivateAccess": "This token cannot see any private repository. On GitHub, open the token (Settings → Developer settings → Fine-grained tokens), set Repository access to \"Only select repositories\", pick {repo}, and save.",
+  "rep.didYouMean": "{repo} was not found, but this token can see {other}. Did you mean that? Copy the name exactly as GitHub shows it.",
+  "rep.notInToken": "This token cannot see {repo}. It can see: {list}. Add {repo} under the token's Repository access on GitHub, or fix the name here.",
 } as const;
 
 export type StringKey = keyof typeof en;
