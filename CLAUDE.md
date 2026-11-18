@@ -279,6 +279,14 @@ Never map one to another. Never put the token in any message or log.
 - **Always excluded, not overridable:** `.git/`, `.trash/`, this plugin's own
   folder `data.json`, any `workspace*.json`, `.obsidian/cache`, OS junk
   (`.DS_Store`, `Thumbs.db`, `desktop.ini`).
+- **A path the vault cannot list is never synced.** The excluder and the vault
+  listing must agree: anything the local scan cannot see looks deleted, and its
+  deletion gets pushed. So every dot-path outside the config dir (`.github/`,
+  `.editorconfig`, `notes/.draft.md`, …) is excluded and stays untouched on
+  GitHub. The only exceptions are the files in `LISTED_HIDDEN_FILES`
+  (`src/core/paths.ts`, currently the root `.gitignore`), which `ObsidianVault`
+  always lists from the same constant. Adding a hidden path to sync means adding
+  it to both, with a test (see BUG_HISTORY 2026-11-18).
 - `.obsidian/` config sync is **opt-in with an allow-list**: appearance, hotkeys,
   `snippets/`, `themes/`, core plugin config, and `plugins/*/{main.js,manifest.json,styles.css}`.
   Plugin `data.json` files are opt-in per plugin (they often hold secrets).
