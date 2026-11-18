@@ -1,7 +1,7 @@
 {
   "id": "vault-github-sync",
   "name": "Vault GitHub Sync",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minAppVersion": "1.11.4",
   "description": "Sync your vault with a GitHub repository on desktop and mobile — no git binary required.",
   "author": "rc-da",
