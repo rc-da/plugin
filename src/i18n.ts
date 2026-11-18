@@ -1,0 +1,218 @@
+// All UI text goes through t() (§1 non-goals: English only, but addable).
+// Sentence case everywhere (§12). Placeholders: {name}.
+
+const en = {
+  // commands / ribbon
+  "cmd.syncNow": "Sync now",
+  "cmd.testConnection": "Test connection",
+  "cmd.pause": "Pause auto-sync",
+  "cmd.resume": "Resume auto-sync",
+  "cmd.copyLog": "Copy sync log to clipboard",
+  "ribbon.sync": "Sync with GitHub",
+
+  // notices
+  "notice.notConfigured": "GitHub sync is not set up yet. Open the plugin settings to add a token and repository.",
+  "notice.noToken": "No GitHub token on this device. Pick one in the plugin settings (tokens are stored per device).",
+  "notice.upToDate": "Already up to date.",
+  "notice.synced": "Synced: {summary}.",
+  "notice.partial": "Synced with {count} file(s) skipped. See the sync log for details.",
+  "notice.conflicts": "{count} conflict(s): the other version was saved next to the file.",
+  "notice.stopped": "Sync stopped: {message}",
+  "notice.failed": "Sync failed: {message}",
+  "notice.rateLimited": "GitHub rate limit reached. Sync resumes at {time}.",
+  "notice.alreadyRunning": "A sync is already running; another one will follow.",
+  "notice.logCopied": "Sync log copied to the clipboard.",
+  "notice.paused": "Auto-sync paused.",
+  "notice.resumed": "Auto-sync resumed.",
+  "summary.pulled": "{n} pulled",
+  "summary.pushed": "{n} pushed",
+  "summary.deleted": "{n} deleted",
+  "summary.merged": "{n} merged",
+
+  // status bar
+  "status.idle": "Synced",
+  "status.neverSynced": "Not synced yet",
+  "status.notConfigured": "Set up sync",
+  "status.pending": "{n} pending",
+  "status.scanning": "Checking files",
+  "status.fetching": "Checking GitHub",
+  "status.planning": "Planning",
+  "status.pulling": "Pulling",
+  "status.pushing": "Pushing",
+  "status.finishing": "Finishing",
+  "status.conflicts": "{n} conflict(s)",
+  "status.error": "Sync error",
+  "status.offline": "Offline",
+  "status.stopped": "Needs review",
+  "status.paused": "Auto-sync paused",
+  "status.rateLimited": "Waiting for GitHub",
+  "status.lastSync": "Last sync: {when}",
+  "status.clickForMenu": "Click for options",
+  "time.justNow": "just now",
+  "time.minutes": "{n} min ago",
+  "time.hours": "{n} h ago",
+  "time.days": "{n} d ago",
+  "time.never": "never",
+
+  // settings
+  "set.github": "GitHub",
+  "set.sync": "Sync",
+  "set.auto": "Automatic sync",
+  "set.paused.name": "Pause automatic sync",
+  "set.paused.desc": "Manual sync keeps working.",
+  "set.startup.name": "Sync on startup",
+  "set.foreground.name": "Sync when returning to the app",
+  "set.foreground.desc": "Useful on mobile, where the app is suspended in the background.",
+  "set.interval.name": "Check for changes every (minutes)",
+  "set.interval.desc": "Asks GitHub whether anything changed, which costs nothing when nothing did. 0 turns it off.",
+  "set.debounce.name": "Sync after editing (seconds)",
+  "set.debounce.desc": "Waits this long after your last change. On mobile, leaving the app syncs right away. 0 turns it off.",
+  "set.device": "This device",
+  "set.config": "Obsidian settings",
+  "set.config.enabled.name": "Sync the {dir} folder",
+  "set.config.enabled.desc": "Off by default. Only the categories below are synced; workspace layout and caches never are. Changed settings take effect after restarting Obsidian on the other device. Settings files change without file events, so they sync on startup, on the interval and with manual syncs.",
+  "set.config.appearance.name": "Appearance, themes and CSS snippets",
+  "set.config.appearance.desc": "appearance.json, themes/ and snippets/.",
+  "set.config.hotkeys.name": "Hotkeys",
+  "set.config.hotkeys.desc": "hotkeys.json.",
+  "set.config.core.name": "Core settings and core plugins",
+  "set.config.core.desc": "app.json, core-plugins.json and the settings of core plugins (daily notes, templates, graph, …).",
+  "set.config.plugins.name": "Community plugins",
+  "set.config.plugins.desc": "The list of enabled plugins and their code (main.js, manifest.json, styles.css). Not their settings.",
+  "set.config.data.name": "Community plugin settings",
+  "set.config.data.desc": "Sync a plugin's data.json only if you are sure it holds no passwords or tokens: many plugins store secrets there.",
+  "set.devExclude.name": "Excluded on this device",
+  "set.devExclude.desc": "Extra gitignore-style patterns that apply only on this device. Excluded files are left alone on both sides, never deleted.",
+  "set.devPlugins.name": "Community plugins not synced on this device",
+  "set.devPlugins.desc": "For example a desktop-only plugin. Its folder is left alone here and on GitHub.",
+  "set.token.name": "Access token",
+  "set.token.desc": "Use a fine-grained token limited to this one repository, with Contents read and write, and an expiry date. Tokens are kept in this device's secret storage, so set it once on every device.",
+  "set.token.legacy": "A token was found in plain text in the plugin data and could not be moved to secret storage. Pick a token here to remove it.",
+  "set.repo.name": "Repository",
+  "set.repo.desc": "owner/name. Start typing to pick from the repositories the token can see.",
+  "set.branch.name": "Branch",
+  "set.branch.desc": "Created on the first sync if it does not exist.",
+  "set.test.name": "Test connection",
+  "set.test.desc": "Checks the token, repository access and write permission. The write check uploads an empty, uncommitted blob.",
+  "set.test.button": "Test",
+  "set.test.running": "Testing…",
+  "set.device.name": "Device name",
+  "set.device.desc": "Used in commit messages and conflict file names. Stored on this device only.",
+  "set.commit.name": "Commit message",
+  "set.commit.desc": "Placeholders: {{device}}, {{date}}, {{count}}.",
+  "set.maxSize.name": "Maximum file size (MB)",
+  "set.maxSize.desc": "Larger files are skipped and listed in the sync report. GitHub's limit is 100 MB.",
+  "set.exclude.name": "Excluded files",
+  "set.exclude.desc": "One gitignore-style pattern per line, for example attachments/ or *.mp4.",
+  "set.reset.name": "Reset sync state",
+  "set.reset.desc": "Forget what this device last synced. The next sync then deletes nothing and turns differences into conflict copies.",
+  "set.reset.button": "Reset",
+  "set.reset.confirm": "Click again to reset",
+  "set.reset.done": "Sync state reset.",
+  "set.otherSync": "Another sync tool seems to manage this vault ({tools}). Running two sync tools on one vault can duplicate or lose changes.",
+
+  // commands (milestone 9)
+  "cmd.review": "Review changes and sync",
+  "cmd.conflicts": "Resolve conflicts",
+  "cmd.log": "Show sync log",
+  "menu.review": "Review and continue…",
+  "menu.conflicts": "Resolve {n} conflict(s)…",
+
+  // modals: common
+  "modal.cancel": "Cancel",
+  "modal.close": "Close",
+  "modal.busy": "A sync is running. Try again when it has finished.",
+  "modal.andMore": "…and {n} more",
+
+  // guard modal
+  "guard.massDelete.title": "Confirm deletions",
+  "guard.massDelete.intro": "This sync would delete more files than usual. Nothing has been changed yet.",
+  "guard.massDelete.local": "Delete from this vault ({n})",
+  "guard.massDelete.remote": "Delete from GitHub ({n})",
+  "guard.massDelete.confirm": "Delete these files",
+  "guard.empty.title": "GitHub branch is empty",
+  "guard.empty.missing.title": "GitHub branch is missing",
+  "guard.empty.intro": "This often means the wrong branch, a wiped repository or a force-push. Nothing has been changed yet.",
+  "guard.empty.reupload": "Upload this vault again",
+  "guard.empty.reupload.desc": "Push every local file back to GitHub. Nothing is deleted anywhere.",
+  "guard.empty.delete": "Delete local files too",
+  "guard.empty.delete.desc": "The branch was emptied on purpose: remove the synced files from this vault as well.",
+  "guard.empty.deleteConfirm": "Click again to delete",
+
+  // review modal
+  "review.title": "Review local changes",
+  "review.loading": "Checking files…",
+  "review.none": "No local changes since the last sync.",
+  "review.firstSync": "First sync with this repository: nothing will be deleted on either side.",
+  "review.hint": "Untick a file to hold it back. Held-back files stay as they are, here and on GitHub, until a later sync.",
+  "review.all": "All",
+  "review.none.button": "None",
+  "review.sync": "Sync",
+  "review.syncCount": "Sync ({n} of {total})",
+  "review.kind.added": "new",
+  "review.kind.modified": "changed",
+  "review.kind.deleted": "deleted",
+  "review.kind.renamed": "renamed",
+
+  // conflict modal
+  "conflicts.title": "Conflicts",
+  "conflicts.none": "No conflicts.",
+  "conflicts.intro": "Your version stayed in place; the other device's version was saved next to it.",
+  "conflicts.copy": "Other version: {path}",
+  "conflicts.keepLocal": "Keep mine",
+  "conflicts.keepRemote": "Keep theirs",
+  "conflicts.keepBoth": "Keep both",
+  "conflicts.compare": "Compare",
+  "conflicts.edit": "Edit manually",
+  "conflicts.allLocal": "Keep all mine",
+  "conflicts.allRemote": "Keep all theirs",
+  "conflicts.allBoth": "Keep all both",
+  "conflicts.resolved": "{n} conflict(s) resolved.",
+
+  // log modal
+  "log.title": "Sync log",
+  "log.empty": "Nothing logged yet.",
+  "log.copy": "Copy",
+  "log.onlyProblems": "Only warnings and errors",
+
+  // test connection
+  "test.token": "Token",
+  "test.repo": "Repository",
+  "test.branch": "Branch",
+  "test.write": "Write access",
+  "test.rate": "Rate limit",
+  "rep.signedIn": "Signed in as {login} ({kind})",
+  "rep.kind.fine": "fine-grained token",
+  "rep.kind.classic": "classic token",
+  "rep.kind.unknown": "token",
+  "rep.preferFine": "A fine-grained token limited to this repository is safer",
+  "rep.expires": "Expires in {days} day(s)",
+  "rep.noExpiry": "No expiry date: consider setting one",
+  "rep.scopeMissing": "The token is missing the \"repo\" scope needed for {repo}.",
+  "rep.readOnly": "Your account can read {repo} but not write to it.",
+  "rep.repoOk": "{repo} ({visibility}).",
+  "rep.private": "private",
+  "rep.public": "public",
+  "rep.branchOk": "{branch} exists.",
+  "rep.branchMissing": "{branch} does not exist yet; the first sync will create it.",
+  "rep.writeOk": "The token can write to this repository.",
+  "rep.writeDenied": "The token cannot write. Give it Contents: read and write for this repository.",
+  "rep.writeUnknown": "The repository is empty, so write access can only be confirmed by the first sync.",
+  "rep.rate": "{n} requests left this hour.",
+} as const;
+
+export type StringKey = keyof typeof en;
+
+export function t(key: StringKey, vars: Record<string, string | number> = {}): string {
+  return en[key].replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
+}
+
+/** "5 min ago" style, for the status-bar tooltip. */
+export function relativeTime(then: number | null, now: number): string {
+  if (then === null) return t("time.never");
+  const s = Math.max(0, Math.round((now - then) / 1000));
+  if (s < 60) return t("time.justNow");
+  if (s < 3600) return t("time.minutes", { n: Math.floor(s / 60) });
+  if (s < 86400) return t("time.hours", { n: Math.floor(s / 3600) });
+  return t("time.days", { n: Math.floor(s / 86400) });
+}

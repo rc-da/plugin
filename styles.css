@@ -1,0 +1,207 @@
+/* Vault GitHub Sync — Obsidian CSS variables only (§12). */
+
+.vgs-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-4-1);
+}
+
+.vgs-status-icon {
+  display: inline-flex;
+}
+
+.vgs-status-icon svg {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+.vgs-status.vgs-tone-warn { color: var(--text-warning); }
+.vgs-status.vgs-tone-error { color: var(--text-error); }
+.vgs-status.vgs-tone-muted { color: var(--text-muted); }
+
+.vgs-status.vgs-spinning .vgs-status-icon svg {
+  animation: vgs-spin 1.2s linear infinite;
+}
+
+@keyframes vgs-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vgs-status.vgs-spinning .vgs-status-icon svg { animation: none; }
+}
+
+/* settings */
+
+.vgs-warning {
+  color: var(--text-warning);
+  background: var(--background-modifier-hover);
+  border-radius: var(--radius-s);
+  padding: var(--size-4-2) var(--size-4-3);
+  margin: var(--size-4-2) 0;
+}
+
+.vgs-test-results:empty {
+  display: none;
+}
+
+.vgs-test-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-1);
+  padding: var(--size-4-2) 0 var(--size-4-4);
+  font-size: var(--font-ui-small);
+}
+
+.vgs-test-line {
+  display: flex;
+  gap: var(--size-4-2);
+  overflow-wrap: anywhere;
+}
+
+.vgs-test-line::before {
+  flex: none;
+  width: 1.2em;
+  font-weight: var(--font-bold);
+}
+
+.vgs-test-ok::before { content: "✓"; color: var(--text-success); }
+.vgs-test-warn::before { content: "!"; color: var(--text-warning); }
+.vgs-test-fail::before { content: "✗"; color: var(--text-error); }
+
+.vgs-test-label {
+  flex: none;
+  min-width: 7em;
+  color: var(--text-muted);
+}
+
+.vgs-settings textarea {
+  width: 100%;
+  min-height: 5em;
+}
+
+/* §10 mobile: settings rows stack vertically, inputs never overflow. */
+.is-mobile .vgs-settings .setting-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--size-4-2);
+}
+
+.is-mobile .vgs-settings .setting-item-control {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.is-mobile .vgs-settings .setting-item-control input[type="text"],
+.is-mobile .vgs-settings .setting-item-control textarea {
+  width: 100%;
+  max-width: 100%;
+}
+
+.is-mobile .vgs-test-line {
+  flex-direction: column;
+  gap: 0;
+}
+
+/* modals (§10): one at a time, scroll inside, respect safe area and keyboard */
+
+.vgs-modal {
+  max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--size-4-4));
+  display: flex;
+  flex-direction: column;
+}
+
+.vgs-modal .modal-content {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.vgs-muted { color: var(--text-muted); font-size: var(--font-ui-small); }
+.vgs-error { color: var(--text-error); font-size: var(--font-ui-small); }
+
+.vgs-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
+  margin-top: var(--size-4-3);
+}
+
+.vgs-button-row.vgs-left { justify-content: flex-start; margin-top: var(--size-4-1); }
+
+.vgs-path-list {
+  max-height: 40vh;
+  overflow-y: auto;
+  margin: var(--size-4-1) 0;
+  padding-left: var(--size-4-5);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  overflow-wrap: anywhere;
+}
+
+.vgs-details { margin: var(--size-4-2) 0; }
+.vgs-details summary { cursor: var(--cursor); font-weight: var(--font-semibold); }
+
+.vgs-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--size-4-1);
+  margin: var(--size-4-3) 0;
+}
+
+.vgs-review-list { max-height: 50vh; overflow-y: auto; margin: var(--size-4-2) 0; }
+
+.vgs-review-row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-2-2) 0;
+}
+
+.vgs-review-path { overflow-wrap: anywhere; font-size: var(--font-ui-small); }
+
+.vgs-badge {
+  flex: none;
+  font-size: var(--font-ui-smaller);
+  padding: 0 var(--size-4-1);
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+}
+
+.vgs-badge-added { color: var(--text-success); }
+.vgs-badge-deleted { color: var(--text-error); }
+.vgs-badge-renamed { color: var(--text-accent); }
+
+.vgs-conflict {
+  padding: var(--size-4-2) 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vgs-conflict-path { font-weight: var(--font-semibold); overflow-wrap: anywhere; }
+
+.vgs-log {
+  max-height: 60vh;
+  overflow: auto;
+  font-size: var(--font-ui-smaller);
+  user-select: text;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vgs-log-warn { color: var(--text-warning); }
+.vgs-log-error { color: var(--text-error); }
+.vgs-log-debug { color: var(--text-faint); }
+
+.vgs-inline { display: inline-flex; align-items: center; gap: var(--size-4-1); }
+
+.is-mobile .vgs-button-row { justify-content: stretch; }
+.is-mobile .vgs-button-row button { flex: 1 1 auto; }
+
+/* config sync sub-options */
+.vgs-settings .setting-item.vgs-sub { padding-left: var(--size-4-6); }
+.vgs-settings .setting-item.vgs-sub2 { padding-left: var(--size-4-12); }
+.is-mobile .vgs-settings .setting-item.vgs-sub,
+.is-mobile .vgs-settings .setting-item.vgs-sub2 { padding-left: var(--size-4-3); }
