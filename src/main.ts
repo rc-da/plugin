@@ -82,6 +82,7 @@ export default class VaultGitHubSyncPlugin extends Plugin {
           deps: {
             vault, remote: this.remote, state: this.state, clock, log: this.logger,
             yieldToHost: () => new Promise(res => activeWindow.setTimeout(res, 0)),
+            sleep: ms => new Promise(res => activeWindow.setTimeout(res, ms)),
             config: {
               repo: s.repo, branch: s.branch, deviceName: this.deviceName(), commitTemplate: s.commitTemplate,
               maxFileBytes: s.maxFileMB * 1024 * 1024,

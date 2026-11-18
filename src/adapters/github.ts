@@ -71,6 +71,8 @@ export class GitHubRemote implements RemotePort {
   private readonly apiBase: string;
   private readonly commitCache = new BoundedCache<Sha, CommitInfo>(256);
   private readonly treeCache = new BoundedCache<Sha, RemoteTreeDir>(256);
+  /** Makes every mutable GET's URL unique (see once()). */
+  private freshSeq = 0;
   /** Last X-RateLimit-* seen (§6.2: pause non-urgent syncs when under 100). */
   rateLimit: RateLimitInfo | null = null;
 
@@ -185,7 +187,7 @@ export class GitHubRemote implements RemotePort {
       throw new SyncError("BranchProtected", `GitHub refused the push: branch "${branch}" is protected. Use an unprotected branch or relax the rule.`);
     }
     if (res.status === 409 || /fast.?forward/i.test(msg)) {
-      throw new SyncError("Conflict422", "another device pushed first (not a fast-forward)");
+      throw new SyncError("Conflict422", `the branch moved before our commit landed (GitHub ${res.status}: ${msg || "no message"})`);
     }
     throw new SyncError("Unexpected", `GitHub refused the branch update (${res.status}): ${msg}`);
   }
@@ -360,9 +362,20 @@ export class GitHubRemote implements RemotePort {
       body = JSON.stringify(spec.json);
       headers["Content-Type"] = "application/json";
     }
+    let path = spec.path;
+    if (spec.method === "GET" && !isImmutableGet(path)) {
+      // api.github.com marks responses `max-age=60`, so an HTTP cache under requestUrl
+      // (Electron, iOS) may answer "what is the branch head?" with a minute-old head;
+      // pushes built on it are rejected as not a fast-forward (BUG_HISTORY 2026-11-18).
+      // Ask caches to revalidate, and make the URL unique for caches that ignore that.
+      // GitHub ignores unknown query parameters; If-None-Match / 304 still work.
+      headers["Cache-Control"] = "no-cache";
+      headers["Pragma"] = "no-cache";
+      path += `${path.includes("?") ? "&" : "?"}_=${this.timers.now().toString(36)}${(this.freshSeq++).toString(36)}`;
+    }
     let res: HttpResponse;
     try {
-      res = await this.opts.http({ url: this.apiBase + spec.path, method: spec.method, headers, body });
+      res = await this.opts.http({ url: this.apiBase + path, method: spec.method, headers, body });
     } catch (e) {
       if (e instanceof SyncError) throw e;
       // No response at all. Deliberately not echoing the error: it can include request details.
@@ -428,6 +441,14 @@ function githubMessage(res: HttpResponse): string {
   } catch {
     return "";
   }
+}
+
+/**
+ * GETs whose answer can never change: objects addressed by their own sha. Everything
+ * else (refs, repo info, listings, the user) is mutable and must be fetched fresh.
+ */
+export function isImmutableGet(path: string): boolean {
+  return /\/git\/(commits|trees|blobs)\/[0-9a-f]{40}(\?|$)/i.test(path);
 }
 
 // ── parsing helpers ──────────────────────────────────────────────────────────

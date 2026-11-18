@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { FakeGitHub } from "./fakes/fake-github";
-import { FakeGitHubHttp, type Scripted } from "./fakes/fake-github-http";
+import { CachingHttp, FakeGitHubHttp, type Scripted } from "./fakes/fake-github-http";
 import { FakeVault } from "./fakes/fake-vault";
 import { FakeState, FakeClock } from "./fakes/fake-state";
 import { GitHubRemote, bytesToBase64, classifyError, headsPath, repoPath } from "../src/adapters/github";
@@ -51,7 +51,8 @@ describe("GitHubRemote — request hygiene (§6.2)", () => {
     const ref = await remote.getRef(REPO, "feature/x y");
     expect(ref?.sha).toBeTruthy();
     const req = http.requests[0];
-    expect(req.url).toBe("https://api.github.com/repos/owner/repo/git/ref/heads/feature/x%20y");
+    expect(req.url).toMatch(/^https:\/\/api\.github\.com\/repos\/owner\/repo\/git\/ref\/heads\/feature\/x%20y\?_=[0-9a-z]+$/);
+    expect(req.headers["Cache-Control"]).toBe("no-cache"); // mutable: never from a cache
     expect(req.headers).toMatchObject({
       Authorization: `Bearer ${TOKEN}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28",
     });
@@ -76,6 +77,8 @@ describe("GitHubRemote — request hygiene (§6.2)", () => {
     const bin = new Uint8Array(256).map((_, i) => i);
     const sha = gh.seedBlob(bin);
     expect(await remote.getBlob(REPO, sha)).toEqual(bin);
+    expect(http.requests[0].url).not.toContain("?_="); // immutable by sha: cacheable
+    expect(http.requests[0].headers["Cache-Control"]).toBeUndefined();
     expect(http.requests[0].headers.Accept).toBe("application/vnd.github.raw+json");
   });
 
@@ -422,5 +425,41 @@ describe("GitHubRemote — 'repository not found' diagnosis", () => {
     http.userRepos = [{ full_name: "owner/website", private: false }];
     const r = await remote.testConnection(REPO, BRANCH);
     expect(r.repo).toMatchObject({ ok: false, visible: [{ fullName: "owner/website", private: false }] });
+  });
+});
+
+describe("client-side HTTP caching (regression: pushes rejected 3x in a row)", () => {
+  // api.github.com sends Cache-Control: max-age=60 on the ref endpoint. A cache under
+  // requestUrl served the pre-push head, every push was built on it and rejected as
+  // not a fast-forward, and every re-plan read the same cached head.
+  it("a second push within 60 s of the first is not built on a cached branch head", async () => {
+    const gh = new FakeGitHub();
+    const cached = new CachingHttp(new FakeGitHubHttp(gh, [REPO]).client);
+    const remote = new GitHubRemote({ http: cached.client, getToken: () => TOKEN, log: quietLog, timers: testTimers() });
+    const exclude = buildExcluder({ configDir: ".obsidian", pluginId: "vault-github-sync" });
+    const vault = new FakeVault();
+    const deps: SyncDeps = { vault, remote, state: new FakeState(), clock: new FakeClock(), log: quietLog,
+      config: { repo: REPO, branch: BRANCH, deviceName: "A", platform: "posix", caseInsensitiveFs: false, exclude } };
+    vault.seed("a.md", "one");
+    await runSync(deps);                        // bootstrap + first push
+    await vault.writeBytes(P("a.md"), enc("two"));
+    cached.advance(10_000);                     // "sync after editing", well inside max-age
+    const r = await runSync(deps);
+    expect(r.status).toBe("ok");
+    expect(r.attempts).toBe(1);
+    expect(text((await gh.snapshotFiles(REPO, BRANCH)).get("a.md"))).toBe("two");
+  });
+
+  it("an edit made on github.com is seen right away, not after the cache expires", async () => {
+    const gh = new FakeGitHub();
+    gh.seedRepo(REPO, BRANCH, { "a.md": "one" });
+    const cached = new CachingHttp(new FakeGitHubHttp(gh, [REPO]).client);
+    const remote = new GitHubRemote({ http: cached.client, getToken: () => TOKEN, log: quietLog, timers: testTimers() });
+    const first = (await remote.getRef(REPO, BRANCH))!.sha;
+    gh.seedChange(REPO, BRANCH, { "a.md": "edited on the website" });
+    cached.advance(5_000);
+    expect((await remote.getRef(REPO, BRANCH))!.sha).not.toBe(first);
+    const poll = await remote.getRefIfChanged(REPO, BRANCH, "");
+    expect(poll.status === "changed" && poll.sha).not.toBe(first);
   });
 });

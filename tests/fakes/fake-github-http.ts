@@ -73,6 +73,8 @@ export class FakeGitHubHttp {
         "content-type": "application/json; charset=utf-8",
         "x-ratelimit-remaining": String(this.rateRemaining),
         "x-ratelimit-reset": String(this.rateReset),
+        // What api.github.com really sends for authenticated GETs (verified with curl).
+        "cache-control": "private, max-age=60, s-maxage=60",
         ...extra,
       },
       body: jsonBody(body),
@@ -180,4 +182,28 @@ function jsonBody(v: unknown): ArrayBuffer {
 
 function toArrayBuffer(b: Uint8Array): ArrayBuffer {
   return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
+}
+
+/**
+ * A client-side HTTP cache in front of a client, like Electron's / iOS's under
+ * Obsidian's requestUrl: GET responses are reused while `max-age` says they are
+ * fresh, keyed by URL only (the worst case: request headers are ignored).
+ * Time only moves when `advance()` is called.
+ */
+export class CachingHttp {
+  now = 0;
+  hits = 0;
+  private cache = new Map<string, { at: number; maxAge: number; res: HttpResponse }>();
+  constructor(private readonly inner: HttpClient) {}
+  advance(ms: number) { this.now += ms; }
+  readonly client: HttpClient = async req => {
+    if (req.method === "GET") {
+      const c = this.cache.get(req.url);
+      if (c && this.now - c.at < c.maxAge * 1000) { this.hits++; return c.res; }
+    }
+    const res = await this.inner(req);
+    const m = /max-age=(\d+)/.exec(res.headers["cache-control"] ?? "");
+    if (req.method === "GET" && res.status === 200 && m) this.cache.set(req.url, { at: this.now, maxAge: Number(m[1]), res });
+    return res;
+  };
 }

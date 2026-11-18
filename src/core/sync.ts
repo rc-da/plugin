@@ -54,6 +54,8 @@ export interface SyncDeps {
   /** Extra host guard, run after the built-in ones. Return a reason to stop before anything is changed. */
   guard?: (plan: SyncPlan, ctx: GuardContext) => Promise<string | null> | string | null;
   yieldToHost?: () => Promise<void>;
+  /** Wait between push attempts after a rejected ref update (GitHub may be a moment behind). */
+  sleep?: (ms: number) => Promise<void>;
   onStatus?: (phase: SyncPhase, detail?: { done: number; total: number }) => void;
 }
 
@@ -98,7 +100,8 @@ export async function runSync(deps: SyncDeps): Promise<SyncResult> {
     cache = outcome.cache;
     await deps.state.saveLocalCache(cache);
     if (outcome.kind === "retry") {
-      log.info(`remote moved while pushing (attempt ${attempt}/${maxAttempts}); re-planning`);
+      log.info(`push rejected (attempt ${attempt}/${maxAttempts}): ${outcome.reason}; re-planning`);
+      if (attempt < maxAttempts) await deps.sleep?.(1000 * attempt);
       continue;
     }
     if (outcome.kind === "stopped") {
@@ -111,12 +114,12 @@ export async function runSync(deps: SyncDeps): Promise<SyncResult> {
     totals.status = finalStatus(totals);
     return totals;
   }
-  throw new SyncError("Conflict422", `another device kept pushing; gave up after ${maxAttempts} attempts`);
+  throw new SyncError("Conflict422", `the branch kept moving while pushing; gave up after ${maxAttempts} attempts (nothing was lost; the next sync retries)`);
 }
 
 type PassOutcome =
   | { kind: "done"; cache: LocalCache }
-  | { kind: "retry"; cache: LocalCache }
+  | { kind: "retry"; reason: string; cache: LocalCache }
   | { kind: "stopped"; stop: GuardStop; cache: LocalCache };
 
 async function onePass(deps: SyncDeps, baseline: Baseline, firstSyncIn: boolean, cache: LocalCache, totals: SyncResult): Promise<PassOutcome> {
@@ -280,7 +283,8 @@ async function onePass(deps: SyncDeps, baseline: Baseline, firstSyncIn: boolean,
     } catch (e) {
       if (e instanceof SyncError && e.kind === "Conflict422") {
         await persist(baseline);
-        return { kind: "retry", cache: nextCache };
+        log.debug(`  built on head ${head}`);
+        return { kind: "retry", reason: e.message, cache: nextCache };
       }
       throw e;
     }
